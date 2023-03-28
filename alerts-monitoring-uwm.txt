@@ -1,0 +1,760 @@
+AlertmanagerClusterDown
+warning
+300
+(count by (namespace, service) (avg_over_time(up{job=~"alertmanager-main|alertmanager-user-workload"}[5m]) < 0.5) / count by (namespace, service) (up{job=~"alertmanager-main|alertmanager-user-workload"})) >= 0.5
+Half or more of the Alertmanager instances within the same cluster are down.
+{{ $value | humanizePercentage }} of Alertmanager instances within the {{$labels.job}} cluster have been up for less than half of the last 5m.
+----
+AlertmanagerClusterFailedToSendAlerts
+warning
+300
+min by (namespace, service, integration) (rate(alertmanager_notifications_failed_total{integration=~".*",job=~"alertmanager-main|alertmanager-user-workload"}[5m]) / rate(alertmanager_notifications_total{integration=~".*",job=~"alertmanager-main|alertmanager-user-workload"}[5m])) > 0.01
+All Alertmanager instances in a cluster failed to send notifications to a critical integration.
+The minimum notification failure rate to {{ $labels.integration }} sent from any instance in the {{$labels.job}} cluster is {{ $value | humanizePercentage }}.
+----
+AlertmanagerConfigInconsistent
+warning
+1200
+count by (namespace, service) (count_values by (namespace, service) ("config_hash", alertmanager_config_hash{job=~"alertmanager-main|alertmanager-user-workload"})) != 1
+Alertmanager instances within the same cluster have different configurations.
+Alertmanager instances within the {{$labels.job}} cluster have different configurations.
+----
+AlertmanagerFailedReload
+critical
+600
+max_over_time(alertmanager_config_last_reload_successful{job=~"alertmanager-main|alertmanager-user-workload"}[5m]) == 0
+Reloading an Alertmanager configuration has failed.
+Configuration has failed to load for {{ $labels.namespace }}/{{ $labels.pod}}.
+----
+AlertmanagerFailedToSendAlerts
+warning
+300
+(rate(alertmanager_notifications_failed_total{job=~"alertmanager-main|alertmanager-user-workload"}[5m]) / rate(alertmanager_notifications_total{job=~"alertmanager-main|alertmanager-user-workload"}[5m])) > 0.01
+An Alertmanager instance failed to send notifications.
+Alertmanager {{ $labels.namespace }}/{{ $labels.pod}} failed to send {{ $value | humanizePercentage }} of notifications to {{ $labels.integration }}.
+----
+AlertmanagerMembersInconsistent
+warning
+900
+max_over_time(alertmanager_cluster_members{job=~"alertmanager-main|alertmanager-user-workload"}[5m]) < on (namespace, service) group_left () count by (namespace, service) (max_over_time(alertmanager_cluster_members{job=~"alertmanager-main|alertmanager-user-workload"}[5m]))
+A member of an Alertmanager cluster has not found all other cluster members.
+Alertmanager {{ $labels.namespace }}/{{ $labels.pod}} has only found {{ $value }} members of the {{$labels.job}} cluster.
+----
+AlertmanagerReceiversNotConfigured
+warning
+600
+cluster:alertmanager_integrations:max == 0
+Receivers (notification integrations) are not configured on Alertmanager
+Alerts are not configured to be sent to a notification system, meaning that you may not be notified in a timely fashion when important failures occur. Check the OpenShift documentation to learn how to configure notifications with Alertmanager.
+----
+ClusterMonitoringOperatorReconciliationErrors
+warning
+3600
+max_over_time(cluster_monitoring_operator_last_reconciliation_successful[5m]) == 0
+Cluster Monitoring Operator is experiencing unexpected reconciliation errors.
+Errors are occurring during reconciliation cycles. Inspect the cluster-monitoring-operator log for potential root causes.
+----
+ConfigReloaderSidecarErrors
+warning
+600
+max_over_time(reloader_last_reload_successful{namespace=~".+"}[5m]) == 0
+config-reloader sidecar has not had a successful reload for 10m
+Errors encountered while the {{$labels.pod}} config-reloader sidecar attempts to sync config in {{$labels.namespace}} namespace.
+As a result, configuration for service running in {{$labels.pod}} may be stale and cannot be updated anymore.
+----
+KubeCPUOvercommit
+warning
+600
+sum(namespace_cpu:kube_pod_container_resource_requests:sum) - (sum(kube_node_status_allocatable{resource="cpu"}) - max(kube_node_status_allocatable{resource="cpu"})) > 0 and (sum(kube_node_status_allocatable{resource="cpu"}) - max(kube_node_status_allocatable{resource="cpu"})) > 0
+Cluster has overcommitted CPU resource requests.
+Cluster has overcommitted CPU resource requests for Pods by {{ $value }} CPU shares and cannot tolerate node failure.
+----
+KubeCPUQuotaOvercommit
+warning
+300
+sum(min without (resource) (kube_resourcequota{job="kube-state-metrics",namespace=~"(openshift-.*|kube-.*|default)",resource=~"(cpu|requests.cpu)",type="hard"})) / sum(kube_node_status_allocatable{job="kube-state-metrics",resource="cpu"}) > 1.5
+Cluster has overcommitted CPU resource requests.
+Cluster has overcommitted CPU resource requests for Namespaces.
+----
+KubeClientErrors
+warning
+900
+(sum by (cluster, instance, job, namespace) (rate(rest_client_requests_total{code=~"5.."}[5m])) / sum by (cluster, instance, job, namespace) (rate(rest_client_requests_total[5m]))) > 0.01
+Kubernetes API server client is experiencing errors.
+Kubernetes API server client '{{ $labels.job }}/{{ $labels.instance }}' is experiencing {{ $value | humanizePercentage }} errors.'
+----
+KubeContainerWaiting
+warning
+3600
+sum by (namespace, pod, container, cluster) (kube_pod_container_status_waiting_reason{job="kube-state-metrics",namespace=~"(openshift-.*|kube-.*|default)"}) > 0
+Pod container waiting longer than 1 hour
+pod/{{ $labels.pod }} in namespace {{ $labels.namespace }} on container {{ $labels.container}} has been in waiting state for longer than 1 hour.
+----
+KubeDaemonSetMisScheduled
+warning
+900
+kube_daemonset_status_number_misscheduled{job="kube-state-metrics",namespace=~"(openshift-.*|kube-.*|default)"} > 0
+DaemonSet pods are misscheduled.
+{{ $value }} Pods of DaemonSet {{ $labels.namespace }}/{{ $labels.daemonset }} are running where they are not supposed to run.
+----
+KubeDaemonSetNotScheduled
+warning
+600
+kube_daemonset_status_desired_number_scheduled{job="kube-state-metrics",namespace=~"(openshift-.*|kube-.*|default)"} - kube_daemonset_status_current_number_scheduled{job="kube-state-metrics",namespace=~"(openshift-.*|kube-.*|default)"} > 0
+DaemonSet pods are not scheduled.
+{{ $value }} Pods of DaemonSet {{ $labels.namespace }}/{{ $labels.daemonset }} are not scheduled.
+----
+KubeDaemonSetRolloutStuck
+warning
+1800
+((kube_daemonset_status_current_number_scheduled{job="kube-state-metrics",namespace=~"(openshift-.*|kube-.*|default)"} != kube_daemonset_status_desired_number_scheduled{job="kube-state-metrics",namespace=~"(openshift-.*|kube-.*|default)"}) or (kube_daemonset_status_number_misscheduled{job="kube-state-metrics",namespace=~"(openshift-.*|kube-.*|default)"} != 0) or (kube_daemonset_status_updated_number_scheduled{job="kube-state-metrics",namespace=~"(openshift-.*|kube-.*|default)"} != kube_daemonset_status_desired_number_scheduled{job="kube-state-metrics",namespace=~"(openshift-.*|kube-.*|default)"}) or (kube_daemonset_status_number_available{job="kube-state-metrics",namespace=~"(openshift-.*|kube-.*|default)"} != kube_daemonset_status_desired_number_scheduled{job="kube-state-metrics",namespace=~"(openshift-.*|kube-.*|default)"})) and (changes(kube_daemonset_status_updated_number_scheduled{job="kube-state-metrics",namespace=~"(openshift-.*|kube-.*|default)"}[5m]) == 0)
+DaemonSet rollout is stuck.
+DaemonSet {{ $labels.namespace }}/{{ $labels.daemonset }} has not finished or progressed for at least 30 minutes.
+----
+KubeDeploymentGenerationMismatch
+warning
+900
+kube_deployment_status_observed_generation{job="kube-state-metrics",namespace=~"(openshift-.*|kube-.*|default)"} != kube_deployment_metadata_generation{job="kube-state-metrics",namespace=~"(openshift-.*|kube-.*|default)"}
+Deployment generation mismatch due to possible roll-back
+Deployment generation for {{ $labels.namespace }}/{{ $labels.deployment }} does not match, this indicates that the Deployment has failed but has not been rolled back.
+----
+KubeDeploymentReplicasMismatch
+warning
+900
+(((kube_deployment_spec_replicas{job="kube-state-metrics",namespace=~"(openshift-.*|kube-.*|default)"} > kube_deployment_status_replicas_available{job="kube-state-metrics",namespace=~"(openshift-.*|kube-.*|default)"}) and (changes(kube_deployment_status_replicas_updated{job="kube-state-metrics",namespace=~"(openshift-.*|kube-.*|default)"}[5m]) == 0)) * on () group_left () cluster:control_plane:all_nodes_ready) > 0
+Deployment has not matched the expected number of replicas
+Deployment {{ $labels.namespace }}/{{ $labels.deployment }} has not matched the expected number of replicas for longer than 15 minutes. This indicates that cluster infrastructure is unable to start or restart the necessary components. This most often occurs when one or more nodes are down or partioned from the cluster, or a fault occurs on the node that prevents the workload from starting. In rare cases this may indicate a new version of a cluster component cannot start due to a bug or configuration error. Assess the pods for this deployment to verify they are running on healthy nodes and then contact support.
+----
+KubeHpaMaxedOut
+warning
+900
+kube_horizontalpodautoscaler_status_current_replicas{job="kube-state-metrics",namespace=~"(openshift-.*|kube-.*|default)"} == kube_horizontalpodautoscaler_spec_max_replicas{job="kube-state-metrics",namespace=~"(openshift-.*|kube-.*|default)"}
+HPA is running at max replicas
+HPA {{ $labels.namespace }}/{{ $labels.horizontalpodautoscaler  }} has been running at max replicas for longer than 15 minutes.
+----
+KubeHpaReplicasMismatch
+warning
+900
+(kube_horizontalpodautoscaler_status_desired_replicas{job="kube-state-metrics",namespace=~"(openshift-.*|kube-.*|default)"} != kube_horizontalpodautoscaler_status_current_replicas{job="kube-state-metrics",namespace=~"(openshift-.*|kube-.*|default)"}) and (kube_horizontalpodautoscaler_status_current_replicas{job="kube-state-metrics",namespace=~"(openshift-.*|kube-.*|default)"} > kube_horizontalpodautoscaler_spec_min_replicas{job="kube-state-metrics",namespace=~"(openshift-.*|kube-.*|default)"}) and (kube_horizontalpodautoscaler_status_current_replicas{job="kube-state-metrics",namespace=~"(openshift-.*|kube-.*|default)"} < kube_horizontalpodautoscaler_spec_max_replicas{job="kube-state-metrics",namespace=~"(openshift-.*|kube-.*|default)"}) and changes(kube_horizontalpodautoscaler_status_current_replicas{job="kube-state-metrics",namespace=~"(openshift-.*|kube-.*|default)"}[15m]) == 0
+HPA has not matched desired number of replicas.
+HPA {{ $labels.namespace }}/{{ $labels.horizontalpodautoscaler  }} has not matched the desired number of replicas for longer than 15 minutes.
+----
+KubeJobFailed
+warning
+900
+kube_job_failed{job="kube-state-metrics",namespace=~"(openshift-.*|kube-.*|default)"} > 0
+Job failed to complete.
+Job {{ $labels.namespace }}/{{ $labels.job_name }} failed to complete. Removing failed job after investigation should clear this alert.
+----
+KubeJobNotCompleted
+warning
+0
+time() - max by (namespace, job_name, cluster) (kube_job_status_start_time{job="kube-state-metrics",namespace=~"(openshift-.*|kube-.*|default)"} and kube_job_status_active{job="kube-state-metrics",namespace=~"(openshift-.*|kube-.*|default)"} > 0) > 43200
+Job did not complete in time
+Job {{ $labels.namespace }}/{{ $labels.job_name }} is taking more than {{ "43200" | humanizeDuration }} to complete.
+----
+KubeMemoryOvercommit
+warning
+600
+sum(namespace_memory:kube_pod_container_resource_requests:sum) - (sum(kube_node_status_allocatable{resource="memory"}) - max(kube_node_status_allocatable{resource="memory"})) > 0 and (sum(kube_node_status_allocatable{resource="memory"}) - max(kube_node_status_allocatable{resource="memory"})) > 0
+Cluster has overcommitted memory resource requests.
+Cluster has overcommitted memory resource requests for Pods by {{ $value | humanize }} bytes and cannot tolerate node failure.
+----
+KubeMemoryQuotaOvercommit
+warning
+300
+sum(min without (resource) (kube_resourcequota{job="kube-state-metrics",namespace=~"(openshift-.*|kube-.*|default)",resource=~"(memory|requests.memory)",type="hard"})) / sum(kube_node_status_allocatable{job="kube-state-metrics",resource="memory"}) > 1.5
+Cluster has overcommitted memory resource requests.
+Cluster has overcommitted memory resource requests for Namespaces.
+----
+KubeNodeNotReady
+warning
+900
+kube_node_status_condition{condition="Ready",job="kube-state-metrics",status="true"} == 0
+Node is not ready.
+{{ $labels.node }} has been unready for more than 15 minutes.
+----
+KubeNodeReadinessFlapping
+warning
+900
+sum by (cluster, node) (changes(kube_node_status_condition{condition="Ready",status="true"}[15m])) > 2
+Node readiness status is flapping.
+The readiness status of node {{ $labels.node }} has changed {{ $value }} times in the last 15 minutes.
+----
+KubeNodeUnreachable
+warning
+900
+(kube_node_spec_taint{effect="NoSchedule",job="kube-state-metrics",key="node.kubernetes.io/unreachable"} unless ignoring (key, value) kube_node_spec_taint{job="kube-state-metrics",key=~"ToBeDeletedByClusterAutoscaler|cloud.google.com/impending-node-termination|aws-node-termination-handler/spot-itn"}) == 1
+Node is unreachable.
+{{ $labels.node }} is unreachable and some workloads may be rescheduled.
+----
+KubePersistentVolumeErrors
+warning
+300
+kube_persistentvolume_status_phase{job="kube-state-metrics",namespace=~"(openshift-.*|kube-.*|default)",phase=~"Failed|Pending"} > 0
+PersistentVolume is having issues with provisioning.
+The persistent volume {{ $labels.persistentvolume }} has status {{ $labels.phase }}.
+----
+KubePersistentVolumeFillingUp
+critical
+60
+(kubelet_volume_stats_available_bytes{job="kubelet",metrics_path="/metrics",namespace=~"(openshift-.*|kube-.*|default)"} / kubelet_volume_stats_capacity_bytes{job="kubelet",metrics_path="/metrics",namespace=~"(openshift-.*|kube-.*|default)"}) < 0.03 and kubelet_volume_stats_used_bytes{job="kubelet",metrics_path="/metrics",namespace=~"(openshift-.*|kube-.*|default)"} > 0 unless on (namespace, persistentvolumeclaim) kube_persistentvolumeclaim_access_mode{access_mode="ReadOnlyMany",namespace=~"(openshift-.*|kube-.*|default)"} == 1 unless on (namespace, persistentvolumeclaim) kube_persistentvolumeclaim_labels{label_alerts_k8s_io_kube_persistent_volume_filling_up="disabled",namespace=~"(openshift-.*|kube-.*|default)"} == 1
+PersistentVolume is filling up.
+The PersistentVolume claimed by {{ $labels.persistentvolumeclaim }} in Namespace {{ $labels.namespace }} is only {{ $value | humanizePercentage }} free.
+----
+KubePersistentVolumeFillingUp
+warning
+3600
+(kubelet_volume_stats_available_bytes{job="kubelet",metrics_path="/metrics",namespace=~"(openshift-.*|kube-.*|default)"} / kubelet_volume_stats_capacity_bytes{job="kubelet",metrics_path="/metrics",namespace=~"(openshift-.*|kube-.*|default)"}) < 0.15 and kubelet_volume_stats_used_bytes{job="kubelet",metrics_path="/metrics",namespace=~"(openshift-.*|kube-.*|default)"} > 0 and predict_linear(kubelet_volume_stats_available_bytes{job="kubelet",metrics_path="/metrics",namespace=~"(openshift-.*|kube-.*|default)"}[6h], 4 * 24 * 3600) < 0 unless on (namespace, persistentvolumeclaim) kube_persistentvolumeclaim_access_mode{access_mode="ReadOnlyMany",namespace=~"(openshift-.*|kube-.*|default)"} == 1 unless on (namespace, persistentvolumeclaim) kube_persistentvolumeclaim_labels{label_alerts_k8s_io_kube_persistent_volume_filling_up="disabled",namespace=~"(openshift-.*|kube-.*|default)"} == 1
+PersistentVolume is filling up.
+Based on recent sampling, the PersistentVolume claimed by {{ $labels.persistentvolumeclaim }} in Namespace {{ $labels.namespace }} is expected to fill up within four days. Currently {{ $value | humanizePercentage }} is available.
+----
+KubePersistentVolumeInodesFillingUp
+critical
+60
+(kubelet_volume_stats_inodes_free{job="kubelet",metrics_path="/metrics",namespace=~"(openshift-.*|kube-.*|default)"} / kubelet_volume_stats_inodes{job="kubelet",metrics_path="/metrics",namespace=~"(openshift-.*|kube-.*|default)"}) < 0.03 and kubelet_volume_stats_inodes_used{job="kubelet",metrics_path="/metrics",namespace=~"(openshift-.*|kube-.*|default)"} > 0 unless on (namespace, persistentvolumeclaim) kube_persistentvolumeclaim_access_mode{access_mode="ReadOnlyMany",namespace=~"(openshift-.*|kube-.*|default)"} == 1 unless on (namespace, persistentvolumeclaim) kube_persistentvolumeclaim_labels{label_alerts_k8s_io_kube_persistent_volume_filling_up="disabled",namespace=~"(openshift-.*|kube-.*|default)"} == 1
+PersistentVolumeInodes are filling up.
+The PersistentVolume claimed by {{ $labels.persistentvolumeclaim }} in Namespace {{ $labels.namespace }} only has {{ $value | humanizePercentage }} free inodes.
+----
+KubePersistentVolumeInodesFillingUp
+warning
+3600
+(kubelet_volume_stats_inodes_free{job="kubelet",metrics_path="/metrics",namespace=~"(openshift-.*|kube-.*|default)"} / kubelet_volume_stats_inodes{job="kubelet",metrics_path="/metrics",namespace=~"(openshift-.*|kube-.*|default)"}) < 0.15 and kubelet_volume_stats_inodes_used{job="kubelet",metrics_path="/metrics",namespace=~"(openshift-.*|kube-.*|default)"} > 0 and predict_linear(kubelet_volume_stats_inodes_free{job="kubelet",metrics_path="/metrics",namespace=~"(openshift-.*|kube-.*|default)"}[6h], 4 * 24 * 3600) < 0 unless on (namespace, persistentvolumeclaim) kube_persistentvolumeclaim_access_mode{access_mode="ReadOnlyMany",namespace=~"(openshift-.*|kube-.*|default)"} == 1 unless on (namespace, persistentvolumeclaim) kube_persistentvolumeclaim_labels{label_alerts_k8s_io_kube_persistent_volume_filling_up="disabled",namespace=~"(openshift-.*|kube-.*|default)"} == 1
+PersistentVolumeInodes are filling up.
+Based on recent sampling, the PersistentVolume claimed by {{ $labels.persistentvolumeclaim }} in Namespace {{ $labels.namespace }} is expected to run out of inodes within four days. Currently {{ $value | humanizePercentage }} of its inodes are free.
+----
+KubePodCrashLooping
+warning
+900
+max_over_time(kube_pod_container_status_waiting_reason{job="kube-state-metrics",namespace=~"(openshift-.*|kube-.*|default)",reason="CrashLoopBackOff"}[5m]) >= 1
+Pod is crash looping.
+Pod {{ $labels.namespace }}/{{ $labels.pod }} ({{ $labels.container }}) is in waiting state (reason: "CrashLoopBackOff").
+----
+KubePodNotReady
+warning
+900
+sum by (namespace, pod, cluster) (max by (namespace, pod, cluster) (kube_pod_status_phase{job="kube-state-metrics",namespace=~"(openshift-.*|kube-.*|default)",phase=~"Pending|Unknown"} unless ignoring (phase) (kube_pod_status_unschedulable{job="kube-state-metrics"} == 1)) * on (namespace, pod, cluster) group_left (owner_kind) topk by (namespace, pod, cluster) (1, max by (namespace, pod, owner_kind, cluster) (kube_pod_owner{owner_kind!="Job"}))) > 0
+Pod has been in a non-ready state for more than 15 minutes.
+Pod {{ $labels.namespace }}/{{ $labels.pod }} has been in a non-ready state for longer than 15 minutes.
+----
+KubePodNotScheduled
+warning
+1800
+last_over_time(kube_pod_status_unschedulable{namespace=~"(openshift-.*|kube-.*|default)"}[5m]) == 1
+Pod cannot be scheduled.
+Pod {{ $labels.namespace }}/{{ $labels.pod }} cannot be scheduled for more than 30 minutes.
+Check the details of the pod with the following command:
+oc describe -n {{ $labels.namespace }} pod {{ $labels.pod }}
+----
+KubeQuotaAlmostFull
+info
+900
+kube_resourcequota{job="kube-state-metrics",namespace=~"(openshift-.*|kube-.*|default)",type="used"} / ignoring (instance, job, type) (kube_resourcequota{job="kube-state-metrics",namespace=~"(openshift-.*|kube-.*|default)",type="hard"} > 0) > 0.9 < 1
+Namespace quota is going to be full.
+Namespace {{ $labels.namespace }} is using {{ $value | humanizePercentage }} of its {{ $labels.resource }} quota.
+----
+KubeQuotaExceeded
+warning
+900
+kube_resourcequota{job="kube-state-metrics",namespace=~"(openshift-.*|kube-.*|default)",type="used"} / ignoring (instance, job, type) (kube_resourcequota{job="kube-state-metrics",namespace=~"(openshift-.*|kube-.*|default)",type="hard"} > 0) > 1
+Namespace quota has exceeded the limits.
+Namespace {{ $labels.namespace }} is using {{ $value | humanizePercentage }} of its {{ $labels.resource }} quota.
+----
+KubeQuotaFullyUsed
+info
+900
+kube_resourcequota{job="kube-state-metrics",namespace=~"(openshift-.*|kube-.*|default)",type="used"} / ignoring (instance, job, type) (kube_resourcequota{job="kube-state-metrics",namespace=~"(openshift-.*|kube-.*|default)",type="hard"} > 0) == 1
+Namespace quota is fully used.
+Namespace {{ $labels.namespace }} is using {{ $value | humanizePercentage }} of its {{ $labels.resource }} quota.
+----
+KubeStateMetricsListErrors
+warning
+900
+(sum(rate(kube_state_metrics_list_total{job="kube-state-metrics",result="error"}[5m])) / sum(rate(kube_state_metrics_list_total{job="kube-state-metrics"}[5m]))) > 0.01
+kube-state-metrics is experiencing errors in list operations.
+kube-state-metrics is experiencing errors at an elevated rate in list operations. This is likely causing it to not be able to expose metrics about Kubernetes objects correctly or at all.
+----
+KubeStateMetricsWatchErrors
+warning
+900
+(sum(rate(kube_state_metrics_watch_total{job="kube-state-metrics",result="error"}[5m])) / sum(rate(kube_state_metrics_watch_total{job="kube-state-metrics"}[5m]))) > 0.01
+kube-state-metrics is experiencing errors in watch operations.
+kube-state-metrics is experiencing errors at an elevated rate in watch operations. This is likely causing it to not be able to expose metrics about Kubernetes objects correctly or at all.
+----
+KubeStatefulSetGenerationMismatch
+warning
+900
+kube_statefulset_status_observed_generation{job="kube-state-metrics",namespace=~"(openshift-.*|kube-.*|default)"} != kube_statefulset_metadata_generation{job="kube-state-metrics",namespace=~"(openshift-.*|kube-.*|default)"}
+StatefulSet generation mismatch due to possible roll-back
+StatefulSet generation for {{ $labels.namespace }}/{{ $labels.statefulset }} does not match, this indicates that the StatefulSet has failed but has not been rolled back.
+----
+KubeStatefulSetReplicasMismatch
+warning
+900
+(kube_statefulset_status_replicas_ready{job="kube-state-metrics",namespace=~"(openshift-.*|kube-.*|default)"} != kube_statefulset_status_replicas{job="kube-state-metrics",namespace=~"(openshift-.*|kube-.*|default)"}) and (changes(kube_statefulset_status_replicas_updated{job="kube-state-metrics",namespace=~"(openshift-.*|kube-.*|default)"}[10m]) == 0)
+Deployment has not matched the expected number of replicas.
+StatefulSet {{ $labels.namespace }}/{{ $labels.statefulset }} has not matched the expected number of replicas for longer than 15 minutes.
+----
+KubeStatefulSetUpdateNotRolledOut
+warning
+900
+(max without (revision) (kube_statefulset_status_current_revision{job="kube-state-metrics",namespace=~"(openshift-.*|kube-.*|default)"} unless kube_statefulset_status_update_revision{job="kube-state-metrics",namespace=~"(openshift-.*|kube-.*|default)"}) * (kube_statefulset_replicas{job="kube-state-metrics",namespace=~"(openshift-.*|kube-.*|default)"} != kube_statefulset_status_replicas_updated{job="kube-state-metrics",namespace=~"(openshift-.*|kube-.*|default)"})) and (changes(kube_statefulset_status_replicas_updated{job="kube-state-metrics",namespace=~"(openshift-.*|kube-.*|default)"}[5m]) == 0)
+StatefulSet update has not been rolled out.
+StatefulSet {{ $labels.namespace }}/{{ $labels.statefulset }} update has not been rolled out.
+----
+KubeletClientCertificateRenewalErrors
+warning
+900
+increase(kubelet_certificate_manager_client_expiration_renew_errors[5m]) > 0
+Kubelet has failed to renew its client certificate.
+Kubelet on node {{ $labels.node }} has failed to renew its client certificate ({{ $value | humanize }} errors in the last 5 minutes).
+----
+KubeletDown
+critical
+900
+absent(up{job="kubelet",metrics_path="/metrics"} == 1)
+Target disappeared from Prometheus target discovery.
+Kubelet has disappeared from Prometheus target discovery.
+----
+KubeletPlegDurationHigh
+warning
+300
+node_quantile:kubelet_pleg_relist_duration_seconds:histogram_quantile{quantile="0.99"} >= 10
+Kubelet Pod Lifecycle Event Generator is taking too long to relist.
+The Kubelet Pod Lifecycle Event Generator has a 99th percentile duration of {{ $value }} seconds on node {{ $labels.node }}.
+----
+KubeletPodStartUpLatencyHigh
+warning
+900
+histogram_quantile(0.99, sum by (cluster, instance, le) (rate(kubelet_pod_worker_duration_seconds_bucket{job="kubelet",metrics_path="/metrics"}[5m]))) * on (cluster, instance) group_left (node) kubelet_node_name{job="kubelet",metrics_path="/metrics"} > 60
+Kubelet Pod startup latency is too high.
+Kubelet Pod startup 99th percentile latency is {{ $value }} seconds on node {{ $labels.node }}.
+----
+KubeletServerCertificateRenewalErrors
+warning
+900
+increase(kubelet_server_expiration_renew_errors[5m]) > 0
+Kubelet has failed to renew its server certificate.
+Kubelet on node {{ $labels.node }} has failed to renew its server certificate ({{ $value | humanize }} errors in the last 5 minutes).
+----
+KubeletTooManyPods
+info
+900
+count by (cluster, node) ((kube_pod_status_phase{job="kube-state-metrics",phase="Running"} == 1) * on (instance, pod, namespace, cluster) group_left (node) topk by (instance, pod, namespace, cluster) (1, kube_pod_info{job="kube-state-metrics"})) / max by (cluster, node) (kube_node_status_capacity{job="kube-state-metrics",resource="pods"} != 1) > 0.95
+Kubelet is running at capacity.
+Kubelet '{{ $labels.node }}' is running at {{ $value | humanizePercentage }} of its Pod capacity.
+----
+MultipleContainersOOMKilled
+info
+900
+sum(max by (namespace, container, pod) (increase(kube_pod_container_status_restarts_total[12m])) and max by (namespace, container, pod) (kube_pod_container_status_last_terminated_reason{reason="OOMKilled"}) == 1) > 5
+Containers are being killed due to OOM
+Multiple containers were out of memory killed within the past 15 minutes. There are many potential causes of OOM errors, however issues on a specific node or containers breaching their limits is common.
+----
+NodeClockNotSynchronising
+critical
+600
+min_over_time(node_timex_sync_status{job="node-exporter"}[5m]) == 0 and node_timex_maxerror_seconds{job="node-exporter"} >= 16
+Clock not synchronising.
+Clock on {{ $labels.instance }} is not synchronising. Ensure NTP is configured on this host.
+----
+NodeClockSkewDetected
+warning
+600
+(node_timex_offset_seconds{job="node-exporter"} > 0.05 and deriv(node_timex_offset_seconds{job="node-exporter"}[5m]) >= 0) or (node_timex_offset_seconds{job="node-exporter"} < -0.05 and deriv(node_timex_offset_seconds{job="node-exporter"}[5m]) <= 0)
+Clock skew detected.
+Clock on {{ $labels.instance }} is out of sync by more than 300s. Ensure NTP is configured correctly on this host.
+----
+NodeFileDescriptorLimit
+critical
+900
+(node_filefd_allocated{job="node-exporter"} * 100 / node_filefd_maximum{job="node-exporter"} > 90)
+Kernel is predicted to exhaust file descriptors limit soon.
+File descriptors limit at {{ $labels.instance }} is currently at {{ printf "%.2f" $value }}%.
+----
+NodeFileDescriptorLimit
+warning
+900
+(node_filefd_allocated{job="node-exporter"} * 100 / node_filefd_maximum{job="node-exporter"} > 70)
+Kernel is predicted to exhaust file descriptors limit soon.
+File descriptors limit at {{ $labels.instance }} is currently at {{ printf "%.2f" $value }}%.
+----
+NodeFilesystemAlmostOutOfFiles
+critical
+3600
+(node_filesystem_files_free{fstype!="",job="node-exporter",mountpoint!=""} / node_filesystem_files{fstype!="",job="node-exporter",mountpoint!=""} * 100 < 3 and node_filesystem_readonly{fstype!="",job="node-exporter",mountpoint!=""} == 0)
+Filesystem has less than 3% inodes left.
+Filesystem on {{ $labels.device }} at {{ $labels.instance }} has only {{ printf "%.2f" $value }}% available inodes left.
+----
+NodeFilesystemAlmostOutOfFiles
+warning
+3600
+(node_filesystem_files_free{fstype!="",job="node-exporter",mountpoint!=""} / node_filesystem_files{fstype!="",job="node-exporter",mountpoint!=""} * 100 < 5 and node_filesystem_readonly{fstype!="",job="node-exporter",mountpoint!=""} == 0)
+Filesystem has less than 5% inodes left.
+Filesystem on {{ $labels.device }} at {{ $labels.instance }} has only {{ printf "%.2f" $value }}% available inodes left.
+----
+NodeFilesystemAlmostOutOfSpace
+critical
+1800
+(node_filesystem_avail_bytes{fstype!="",job="node-exporter",mountpoint!=""} / node_filesystem_size_bytes{fstype!="",job="node-exporter",mountpoint!=""} * 100 < 3 and node_filesystem_readonly{fstype!="",job="node-exporter",mountpoint!=""} == 0)
+Filesystem has less than 3% space left.
+Filesystem on {{ $labels.device }} at {{ $labels.instance }} has only {{ printf "%.2f" $value }}% available space left.
+----
+NodeFilesystemAlmostOutOfSpace
+warning
+1800
+(node_filesystem_avail_bytes{fstype!="",job="node-exporter",mountpoint!=""} / node_filesystem_size_bytes{fstype!="",job="node-exporter",mountpoint!=""} * 100 < 5 and node_filesystem_readonly{fstype!="",job="node-exporter",mountpoint!=""} == 0)
+Filesystem has less than 5% space left.
+Filesystem on {{ $labels.device }} at {{ $labels.instance }} has only {{ printf "%.2f" $value }}% available space left.
+----
+NodeFilesystemFilesFillingUp
+critical
+3600
+(node_filesystem_files_free{fstype!="",job="node-exporter",mountpoint!=""} / node_filesystem_files{fstype!="",job="node-exporter",mountpoint!=""} * 100 < 20 and predict_linear(node_filesystem_files_free{fstype!="",job="node-exporter",mountpoint!=""}[6h], 4 * 60 * 60) < 0 and node_filesystem_readonly{fstype!="",job="node-exporter",mountpoint!=""} == 0)
+Filesystem is predicted to run out of inodes within the next 4 hours.
+Filesystem on {{ $labels.device }} at {{ $labels.instance }} has only {{ printf "%.2f" $value }}% available inodes left and is filling up fast.
+----
+NodeFilesystemFilesFillingUp
+warning
+3600
+(node_filesystem_files_free{fstype!="",job="node-exporter",mountpoint!=""} / node_filesystem_files{fstype!="",job="node-exporter",mountpoint!=""} * 100 < 40 and predict_linear(node_filesystem_files_free{fstype!="",job="node-exporter",mountpoint!=""}[6h], 24 * 60 * 60) < 0 and node_filesystem_readonly{fstype!="",job="node-exporter",mountpoint!=""} == 0)
+Filesystem is predicted to run out of inodes within the next 24 hours.
+Filesystem on {{ $labels.device }} at {{ $labels.instance }} has only {{ printf "%.2f" $value }}% available inodes left and is filling up.
+----
+NodeFilesystemSpaceFillingUp
+critical
+3600
+(node_filesystem_avail_bytes{fstype!="",job="node-exporter",mountpoint!=""} / node_filesystem_size_bytes{fstype!="",job="node-exporter",mountpoint!=""} * 100 < 10 and predict_linear(node_filesystem_avail_bytes{fstype!="",job="node-exporter",mountpoint!=""}[6h], 4 * 60 * 60) < 0 and node_filesystem_readonly{fstype!="",job="node-exporter",mountpoint!=""} == 0)
+Filesystem is predicted to run out of space within the next 4 hours.
+Filesystem on {{ $labels.device }} at {{ $labels.instance }} has only {{ printf "%.2f" $value }}% available space left and is filling up fast.
+----
+NodeFilesystemSpaceFillingUp
+warning
+3600
+(node_filesystem_avail_bytes{fstype!="",job="node-exporter",mountpoint!=""} / node_filesystem_size_bytes{fstype!="",job="node-exporter",mountpoint!=""} * 100 < 15 and predict_linear(node_filesystem_avail_bytes{fstype!="",job="node-exporter",mountpoint!=""}[6h], 24 * 60 * 60) < 0 and node_filesystem_readonly{fstype!="",job="node-exporter",mountpoint!=""} == 0)
+Filesystem is predicted to run out of space within the next 24 hours.
+Filesystem on {{ $labels.device }} at {{ $labels.instance }} has only {{ printf "%.2f" $value }}% available space left and is filling up.
+----
+NodeHighNumberConntrackEntriesUsed
+warning
+0
+(node_nf_conntrack_entries / node_nf_conntrack_entries_limit) > 0.75
+Number of conntrack are getting close to the limit.
+{{ $value | humanizePercentage }} of conntrack entries are used.
+----
+NodeNetworkInterfaceFlapping
+warning
+120
+changes(node_network_up{device!~"veth.+|tunbr",job="node-exporter"}[2m]) > 2
+Network interface is often changing its status
+Network interface "{{ $labels.device }}" changing its up status often on node-exporter {{ $labels.namespace }}/{{ $labels.pod }}
+----
+NodeNetworkReceiveErrs
+warning
+3600
+rate(node_network_receive_errs_total[2m]) / rate(node_network_receive_packets_total[2m]) > 0.01
+Network interface is reporting many receive errors.
+{{ $labels.instance }} interface {{ $labels.device }} has encountered {{ printf "%.0f" $value }} receive errors in the last two minutes.
+----
+NodeNetworkTransmitErrs
+warning
+3600
+rate(node_network_transmit_errs_total[2m]) / rate(node_network_transmit_packets_total[2m]) > 0.01
+Network interface is reporting many transmit errors.
+{{ $labels.instance }} interface {{ $labels.device }} has encountered {{ printf "%.0f" $value }} transmit errors in the last two minutes.
+----
+NodeRAIDDegraded
+critical
+900
+node_md_disks_required{device=~"mmcblk.p.+|nvme.+|sd.+|vd.+|xvd.+|dm-.+|dasd.+",job="node-exporter"} - ignoring (state) (node_md_disks{device=~"mmcblk.p.+|nvme.+|sd.+|vd.+|xvd.+|dm-.+|dasd.+",job="node-exporter",state="active"}) > 0
+RAID Array is degraded
+RAID array '{{ $labels.device }}' on {{ $labels.instance }} is in degraded state due to one or more disks failures. Number of spare drives is insufficient to fix issue automatically.
+----
+NodeRAIDDiskFailure
+warning
+0
+node_md_disks{device=~"mmcblk.p.+|nvme.+|sd.+|vd.+|xvd.+|dm-.+|dasd.+",job="node-exporter",state="failed"} > 0
+Failed device in RAID array
+At least one device in RAID array on {{ $labels.instance }} failed. Array '{{ $labels.device }}' needs attention and possibly a disk swap.
+----
+NodeTextFileCollectorScrapeError
+warning
+0
+node_textfile_scrape_error{job="node-exporter"} == 1
+Node Exporter text file collector failed to scrape.
+Node Exporter text file collector failed to scrape.
+----
+PrometheusBadConfig
+warning
+600
+max_over_time(prometheus_config_last_reload_successful{job=~"prometheus-k8s|prometheus-user-workload"}[5m]) == 0
+Failed Prometheus configuration reload.
+Prometheus {{$labels.namespace}}/{{$labels.pod}} has failed to reload its configuration.
+----
+PrometheusDuplicateTimestamps
+warning
+3600
+rate(prometheus_target_scrapes_sample_duplicate_timestamp_total{job=~"prometheus-k8s|prometheus-user-workload"}[5m]) > 0
+Prometheus is dropping samples with duplicate timestamps.
+Prometheus {{$labels.namespace}}/{{$labels.pod}} is dropping {{ printf "%.4g" $value  }} samples/s with different values but duplicated timestamp.
+----
+PrometheusErrorSendingAlertsToSomeAlertmanagers
+warning
+900
+(rate(prometheus_notifications_errors_total{job=~"prometheus-k8s|prometheus-user-workload"}[5m]) / rate(prometheus_notifications_sent_total{job=~"prometheus-k8s|prometheus-user-workload"}[5m])) * 100 > 1
+Prometheus has encountered more than 1% errors sending alerts to a specific Alertmanager.
+{{ printf "%.1f" $value }}% errors while sending alerts from Prometheus {{$labels.namespace}}/{{$labels.pod}} to Alertmanager {{$labels.alertmanager}}.
+----
+PrometheusHighQueryLoad
+warning
+900
+avg_over_time(prometheus_engine_queries{job=~"prometheus-k8s|prometheus-user-workload"}[5m]) / max_over_time(prometheus_engine_queries_concurrent_max{job=~"prometheus-k8s|prometheus-user-workload"}[5m]) > 0.8
+Prometheus is reaching its maximum capacity serving concurrent requests.
+Prometheus {{$labels.namespace}}/{{$labels.pod}} query API has less than 20% available capacity in its query engine for the last 15 minutes.
+----
+PrometheusLabelLimitHit
+warning
+900
+increase(prometheus_target_scrape_pool_exceeded_label_limits_total{job=~"prometheus-k8s|prometheus-user-workload"}[5m]) > 0
+Prometheus has dropped targets because some scrape configs have exceeded the labels limit.
+Prometheus {{$labels.namespace}}/{{$labels.pod}} has dropped {{ printf "%.0f" $value }} targets because some samples exceeded the configured label_limit, label_name_length_limit or label_value_length_limit.
+----
+PrometheusMissingRuleEvaluations
+warning
+900
+increase(prometheus_rule_group_iterations_missed_total{job=~"prometheus-k8s|prometheus-user-workload"}[5m]) > 0
+Prometheus is missing rule evaluations due to slow rule group evaluation.
+Prometheus {{$labels.namespace}}/{{$labels.pod}} has missed {{ printf "%.0f" $value }} rule group evaluations in the last 5m.
+----
+PrometheusNotConnectedToAlertmanagers
+warning
+600
+max_over_time(prometheus_notifications_alertmanagers_discovered{job=~"prometheus-k8s|prometheus-user-workload"}[5m]) < 1
+Prometheus is not connected to any Alertmanagers.
+Prometheus {{$labels.namespace}}/{{$labels.pod}} is not connected to any Alertmanagers.
+----
+PrometheusNotIngestingSamples
+warning
+600
+(rate(prometheus_tsdb_head_samples_appended_total{job=~"prometheus-k8s|prometheus-user-workload"}[5m]) <= 0 and (sum without (scrape_job) (prometheus_target_metadata_cache_entries{job=~"prometheus-k8s|prometheus-user-workload"}) > 0 or sum without (rule_group) (prometheus_rule_group_rules{job=~"prometheus-k8s|prometheus-user-workload"}) > 0))
+Prometheus is not ingesting samples.
+Prometheus {{$labels.namespace}}/{{$labels.pod}} is not ingesting samples.
+----
+PrometheusNotificationQueueRunningFull
+warning
+900
+(predict_linear(prometheus_notifications_queue_length{job=~"prometheus-k8s|prometheus-user-workload"}[5m], 60 * 30) > min_over_time(prometheus_notifications_queue_capacity{job=~"prometheus-k8s|prometheus-user-workload"}[5m]))
+Prometheus alert notification queue predicted to run full in less than 30m.
+Alert notification queue of Prometheus {{$labels.namespace}}/{{$labels.pod}} is running full.
+----
+PrometheusOperatorListErrors
+warning
+900
+(sum by (controller, namespace) (rate(prometheus_operator_list_operations_failed_total{job="prometheus-operator",namespace=~"openshift-monitoring|openshift-user-workload-monitoring"}[10m])) / sum by (controller, namespace) (rate(prometheus_operator_list_operations_total{job="prometheus-operator",namespace=~"openshift-monitoring|openshift-user-workload-monitoring"}[10m]))) > 0.4
+Errors while performing list operations in controller.
+Errors while performing List operations in controller {{$labels.controller}} in {{$labels.namespace}} namespace.
+----
+PrometheusOperatorNodeLookupErrors
+warning
+600
+rate(prometheus_operator_node_address_lookup_errors_total{job="prometheus-operator",namespace=~"openshift-monitoring|openshift-user-workload-monitoring"}[5m]) > 0.1
+Errors while reconciling Prometheus.
+Errors while reconciling Prometheus in {{ $labels.namespace }} Namespace.
+----
+PrometheusOperatorNotReady
+warning
+300
+min by (controller, namespace) (max_over_time(prometheus_operator_ready{job="prometheus-operator",namespace=~"openshift-monitoring|openshift-user-workload-monitoring"}[5m]) == 0)
+Prometheus operator not ready
+Prometheus operator in {{ $labels.namespace }} namespace isn't ready to reconcile {{ $labels.controller }} resources.
+----
+PrometheusOperatorReconcileErrors
+warning
+600
+(sum by (controller, namespace) (rate(prometheus_operator_reconcile_errors_total{job="prometheus-operator",namespace=~"openshift-monitoring|openshift-user-workload-monitoring"}[5m]))) / (sum by (controller, namespace) (rate(prometheus_operator_reconcile_operations_total{job="prometheus-operator",namespace=~"openshift-monitoring|openshift-user-workload-monitoring"}[5m]))) > 0.1
+Errors while reconciling controller.
+{{ $value | humanizePercentage }} of reconciling operations failed for {{ $labels.controller }} controller in {{ $labels.namespace }} namespace.
+----
+PrometheusOperatorRejectedResources
+warning
+300
+min_over_time(prometheus_operator_managed_resources{job="prometheus-operator",namespace=~"openshift-monitoring|openshift-user-workload-monitoring",state="rejected"}[5m]) > 0
+Resources rejected by Prometheus operator
+Prometheus operator in {{ $labels.namespace }} namespace rejected {{ printf "%0.0f" $value }} {{ $labels.controller }}/{{ $labels.resource }} resources.
+----
+PrometheusOperatorSyncFailed
+warning
+600
+min_over_time(prometheus_operator_syncs{job="prometheus-operator",namespace=~"openshift-monitoring|openshift-user-workload-monitoring",status="failed"}[5m]) > 0
+Last controller reconciliation failed
+Controller {{ $labels.controller }} in {{ $labels.namespace }} namespace fails to reconcile {{ $value }} objects.
+----
+PrometheusOperatorWatchErrors
+warning
+900
+(sum by (controller, namespace) (rate(prometheus_operator_watch_operations_failed_total{job="prometheus-operator",namespace=~"openshift-monitoring|openshift-user-workload-monitoring"}[5m])) / sum by (controller, namespace) (rate(prometheus_operator_watch_operations_total{job="prometheus-operator",namespace=~"openshift-monitoring|openshift-user-workload-monitoring"}[5m]))) > 0.4
+Errors while performing watch operations in controller.
+Errors while performing watch operations in controller {{$labels.controller}} in {{$labels.namespace}} namespace.
+----
+PrometheusOutOfOrderTimestamps
+warning
+3600
+rate(prometheus_target_scrapes_sample_out_of_order_total{job=~"prometheus-k8s|prometheus-user-workload"}[5m]) > 0
+Prometheus drops samples with out-of-order timestamps.
+Prometheus {{$labels.namespace}}/{{$labels.pod}} is dropping {{ printf "%.4g" $value  }} samples/s with timestamps arriving out of order.
+----
+PrometheusRemoteStorageFailures
+warning
+900
+((rate(prometheus_remote_storage_failed_samples_total{job=~"prometheus-k8s|prometheus-user-workload"}[5m]) or rate(prometheus_remote_storage_samples_failed_total{job=~"prometheus-k8s|prometheus-user-workload"}[5m])) / ((rate(prometheus_remote_storage_failed_samples_total{job=~"prometheus-k8s|prometheus-user-workload"}[5m]) or rate(prometheus_remote_storage_samples_failed_total{job=~"prometheus-k8s|prometheus-user-workload"}[5m])) + (rate(prometheus_remote_storage_succeeded_samples_total{job=~"prometheus-k8s|prometheus-user-workload"}[5m]) or rate(prometheus_remote_storage_samples_total{job=~"prometheus-k8s|prometheus-user-workload"}[5m])))) * 100 > 1
+Prometheus fails to send samples to remote storage.
+Prometheus {{$labels.namespace}}/{{$labels.pod}} failed to send {{ printf "%.1f" $value }}% of the samples to {{ $labels.remote_name}}:{{ $labels.url }}
+----
+PrometheusRemoteWriteBehind
+info
+900
+(max_over_time(prometheus_remote_storage_highest_timestamp_in_seconds{job=~"prometheus-k8s|prometheus-user-workload"}[5m]) - ignoring (remote_name, url) group_right () max_over_time(prometheus_remote_storage_queue_highest_sent_timestamp_seconds{job=~"prometheus-k8s|prometheus-user-workload"}[5m])) > 120
+Prometheus remote write is behind.
+Prometheus {{$labels.namespace}}/{{$labels.pod}} remote write is {{ printf "%.1f" $value }}s behind for {{ $labels.remote_name}}:{{ $labels.url }}.
+----
+PrometheusRemoteWriteDesiredShards
+warning
+900
+(max_over_time(prometheus_remote_storage_shards_desired{job=~"prometheus-k8s|prometheus-user-workload"}[5m]) > max_over_time(prometheus_remote_storage_shards_max{job=~"prometheus-k8s|prometheus-user-workload"}[5m]))
+Prometheus remote write desired shards calculation wants to run more than configured max shards.
+Prometheus {{$labels.namespace}}/{{$labels.pod}} remote write desired shards calculation wants to run {{ $value }} shards for queue {{ $labels.remote_name}}:{{ $labels.url }}, which is more than the max of {{ printf `prometheus_remote_storage_shards_max{instance="%s",job=~"prometheus-k8s|prometheus-user-workload"}` $labels.instance | query | first | value }}.
+----
+PrometheusRuleFailures
+warning
+900
+increase(prometheus_rule_evaluation_failures_total{job=~"prometheus-k8s|prometheus-user-workload"}[5m]) > 0
+Prometheus is failing rule evaluations.
+Prometheus {{$labels.namespace}}/{{$labels.pod}} has failed to evaluate {{ printf "%.0f" $value }} rules in the last 5m.
+----
+PrometheusScrapeBodySizeLimitHit
+warning
+900
+increase(prometheus_target_scrapes_exceeded_body_size_limit_total{job=~"prometheus-k8s|prometheus-user-workload"}[5m]) > 0
+Prometheus has dropped some targets that exceeded body size limit.
+Prometheus {{$labels.namespace}}/{{$labels.pod}} has failed {{ printf "%.0f" $value }} scrapes in the last 5m because some targets exceeded the configured body_size_limit.
+----
+PrometheusScrapeSampleLimitHit
+warning
+900
+increase(prometheus_target_scrapes_exceeded_sample_limit_total{job=~"prometheus-k8s|prometheus-user-workload"}[5m]) > 0
+Prometheus has failed scrapes that have exceeded the configured sample limit.
+Prometheus {{$labels.namespace}}/{{$labels.pod}} has failed {{ printf "%.0f" $value }} scrapes in the last 5m because some targets exceeded the configured sample_limit.
+----
+PrometheusTSDBCompactionsFailing
+warning
+14400
+increase(prometheus_tsdb_compactions_failed_total{job=~"prometheus-k8s|prometheus-user-workload"}[3h]) > 0
+Prometheus has issues compacting blocks.
+Prometheus {{$labels.namespace}}/{{$labels.pod}} has detected {{$value | humanize}} compaction failures over the last 3h.
+----
+PrometheusTSDBReloadsFailing
+warning
+14400
+increase(prometheus_tsdb_reloads_failures_total{job=~"prometheus-k8s|prometheus-user-workload"}[3h]) > 0
+Prometheus has issues reloading blocks from disk.
+Prometheus {{$labels.namespace}}/{{$labels.pod}} has detected {{$value | humanize}} reload failures over the last 3h.
+----
+PrometheusTargetLimitHit
+warning
+900
+increase(prometheus_target_scrape_pool_exceeded_target_limit_total{job=~"prometheus-k8s|prometheus-user-workload"}[5m]) > 0
+Prometheus has dropped targets because some scrape configs have exceeded the targets limit.
+Prometheus {{$labels.namespace}}/{{$labels.pod}} has dropped {{ printf "%.0f" $value }} targets because the number of targets exceeded the configured target_limit.
+----
+PrometheusTargetSyncFailure
+critical
+300
+increase(prometheus_target_sync_failed_total{job=~"prometheus-k8s|prometheus-user-workload"}[30m]) > 0
+Prometheus has failed to sync targets.
+{{ printf "%.0f" $value }} targets in Prometheus {{$labels.namespace}}/{{$labels.pod}} have failed to sync because invalid configuration was supplied.
+----
+TargetDown
+warning
+900
+100 * ((1 - sum by (job, namespace, service) (up and on (namespace, pod) kube_pod_info) / count by (job, namespace, service) (up and on (namespace, pod) kube_pod_info)) or (count by (job, namespace, service) (up == 0) / count by (job, namespace, service) (up))) > 10
+Some targets were not reachable from the monitoring server for an extended period of time.
+{{ printf "%.4g" $value }}% of the {{ $labels.job }}/{{ $labels.service }} targets in {{ $labels.namespace }} namespace have been unreachable for more than 15 minutes. This may be a symptom of network connectivity issues, down nodes, or failures within these components. Assess the health of the infrastructure and nodes running these targets and then contact support.
+----
+TelemeterClientFailures
+warning
+3600
+sum by (namespace) (rate(federate_requests_failed_total{job="telemeter-client"}[15m])) / sum by (namespace) (rate(federate_requests_total{job="telemeter-client"}[15m])) > 0.2
+Telemeter client fails to send metrics
+The telemeter client in namespace {{ $labels.namespace }} fails {{ $value | humanize }} of the requests to the telemeter service.
+Check the logs of the telemeter-client pod with the following command:
+oc logs -n openshift-monitoring deployment.apps/telemeter-client -c telemeter-client
+If the telemeter client fails to authenticate with the telemeter service, make sure that the global pull secret is up to date, see https://docs.openshift.com/container-platform/latest/openshift_images/managing_images/using-image-pull-secrets.html#images-update-global-pull-secret_using-image-pull-secrets for more details.
+----
+ThanosQueryGrpcClientErrorRate
+warning
+3600
+(sum by (namespace, job) (rate(grpc_client_handled_total{grpc_code!="OK",job="thanos-querier"}[5m])) / sum by (namespace, job) (rate(grpc_client_started_total{job="thanos-querier"}[5m]))) * 100 > 5
+Thanos Query is failing to send requests.
+Thanos Query {{$labels.job}} in {{$labels.namespace}} is failing to send {{$value | humanize}}% of requests.
+----
+ThanosQueryGrpcServerErrorRate
+warning
+3600
+(sum by (namespace, job) (rate(grpc_server_handled_total{grpc_code=~"Unknown|ResourceExhausted|Internal|Unavailable|DataLoss|DeadlineExceeded",job="thanos-querier"}[5m])) / sum by (namespace, job) (rate(grpc_server_started_total{job="thanos-querier"}[5m])) * 100 > 5)
+Thanos Query is failing to handle requests.
+Thanos Query {{$labels.job}} in {{$labels.namespace}} is failing to handle {{$value | humanize}}% of requests.
+----
+ThanosQueryHighDNSFailures
+warning
+3600
+(sum by (namespace, job) (rate(thanos_query_store_apis_dns_failures_total{job="thanos-querier"}[5m])) / sum by (namespace, job) (rate(thanos_query_store_apis_dns_lookups_total{job="thanos-querier"}[5m]))) * 100 > 1
+Thanos Query is having high number of DNS failures.
+Thanos Query {{$labels.job}} in {{$labels.namespace}} have {{$value | humanize}}% of failing DNS queries for store endpoints.
+----
+ThanosQueryHttpRequestQueryErrorRateHigh
+warning
+3600
+(sum by (namespace, job) (rate(http_requests_total{code=~"5..",handler="query",job="thanos-querier"}[5m])) / sum by (namespace, job) (rate(http_requests_total{handler="query",job="thanos-querier"}[5m]))) * 100 > 5
+Thanos Query is failing to handle requests.
+Thanos Query {{$labels.job}} in {{$labels.namespace}} is failing to handle {{$value | humanize}}% of "query" requests.
+----
+ThanosQueryHttpRequestQueryRangeErrorRateHigh
+warning
+3600
+(sum by (namespace, job) (rate(http_requests_total{code=~"5..",handler="query_range",job="thanos-querier"}[5m])) / sum by (namespace, job) (rate(http_requests_total{handler="query_range",job="thanos-querier"}[5m]))) * 100 > 5
+Thanos Query is failing to handle requests.
+Thanos Query {{$labels.job}} in {{$labels.namespace}} is failing to handle {{$value | humanize}}% of "query_range" requests.
+----
+ThanosQueryOverload
+warning
+3600
+(max_over_time(thanos_query_concurrent_gate_queries_max[5m]) - avg_over_time(thanos_query_concurrent_gate_queries_in_flight[5m]) < 1)
+Thanos query reaches its maximum capacity serving concurrent requests.
+Thanos Query {{$labels.job}} in {{$labels.namespace}} has been overloaded for more than 15 minutes. This may be a symptom of excessive simultanous complex requests, low performance of the Prometheus API, or failures within these components. Assess the health of the Thanos query instances, the connnected Prometheus instances, look for potential senders of these requests and then contact support.
+----
+ThanosSidecarBucketOperationsFailed
+warning
+3600
+sum by (namespace, job, instance) (rate(thanos_objstore_bucket_operation_failures_total{job=~"prometheus-(k8s|user-workload)-thanos-sidecar"}[5m])) > 0
+Thanos Sidecar bucket operations are failing
+Thanos Sidecar {{$labels.instance}} in {{$labels.namespace}} bucket operations are failing
+----
+ThanosSidecarNoConnectionToStartedPrometheus
+warning
+3600
+thanos_sidecar_prometheus_up{job=~"prometheus-(k8s|user-workload)-thanos-sidecar"} == 0 and on (namespace, pod) prometheus_tsdb_data_replay_duration_seconds != 0
+Thanos Sidecar cannot access Prometheus, even though Prometheus seems healthy and has reloaded WAL.
+Thanos Sidecar {{$labels.instance}} in {{$labels.namespace}} is unhealthy.
+----
+Watchdog
+none
+0
+vector(1)
+An alert that should always be firing to certify that Alertmanager is working properly.
+This is an alert meant to ensure that the entire alerting pipeline is functional.
+This alert is always firing, therefore it should always be firing in Alertmanager
+and always fire against a receiver. There are integrations with various notification
+mechanisms that send a notification when this alert is not firing. For example the
+"DeadMansSnitch" integration in PagerDuty.
+
+----
