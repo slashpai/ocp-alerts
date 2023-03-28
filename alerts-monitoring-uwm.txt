@@ -382,56 +382,56 @@ File descriptors limit at {{ $labels.instance }} is currently at {{ printf "%.2f
 NodeFilesystemAlmostOutOfFiles
 critical
 3600
-(node_filesystem_files_free{fstype!="",job="node-exporter",mountpoint!=""} / node_filesystem_files{fstype!="",job="node-exporter",mountpoint!=""} * 100 < 3 and node_filesystem_readonly{fstype!="",job="node-exporter",mountpoint!=""} == 0)
+(node_filesystem_files_free{fstype!="",job="node-exporter",mountpoint!~"/var/lib/ibmc-s3fs.*"} / node_filesystem_files{fstype!="",job="node-exporter",mountpoint!~"/var/lib/ibmc-s3fs.*"} * 100 < 3 and node_filesystem_readonly{fstype!="",job="node-exporter",mountpoint!~"/var/lib/ibmc-s3fs.*"} == 0)
 Filesystem has less than 3% inodes left.
 Filesystem on {{ $labels.device }} at {{ $labels.instance }} has only {{ printf "%.2f" $value }}% available inodes left.
 ----
 NodeFilesystemAlmostOutOfFiles
 warning
 3600
-(node_filesystem_files_free{fstype!="",job="node-exporter",mountpoint!=""} / node_filesystem_files{fstype!="",job="node-exporter",mountpoint!=""} * 100 < 5 and node_filesystem_readonly{fstype!="",job="node-exporter",mountpoint!=""} == 0)
+(node_filesystem_files_free{fstype!="",job="node-exporter",mountpoint!~"/var/lib/ibmc-s3fs.*"} / node_filesystem_files{fstype!="",job="node-exporter",mountpoint!~"/var/lib/ibmc-s3fs.*"} * 100 < 5 and node_filesystem_readonly{fstype!="",job="node-exporter",mountpoint!~"/var/lib/ibmc-s3fs.*"} == 0)
 Filesystem has less than 5% inodes left.
 Filesystem on {{ $labels.device }} at {{ $labels.instance }} has only {{ printf "%.2f" $value }}% available inodes left.
 ----
 NodeFilesystemAlmostOutOfSpace
 critical
 1800
-(node_filesystem_avail_bytes{fstype!="",job="node-exporter",mountpoint!=""} / node_filesystem_size_bytes{fstype!="",job="node-exporter",mountpoint!=""} * 100 < 3 and node_filesystem_readonly{fstype!="",job="node-exporter",mountpoint!=""} == 0)
+(node_filesystem_avail_bytes{fstype!="",job="node-exporter",mountpoint!~"/var/lib/ibmc-s3fs.*"} / node_filesystem_size_bytes{fstype!="",job="node-exporter",mountpoint!~"/var/lib/ibmc-s3fs.*"} * 100 < 3 and node_filesystem_readonly{fstype!="",job="node-exporter",mountpoint!~"/var/lib/ibmc-s3fs.*"} == 0)
 Filesystem has less than 3% space left.
 Filesystem on {{ $labels.device }} at {{ $labels.instance }} has only {{ printf "%.2f" $value }}% available space left.
 ----
 NodeFilesystemAlmostOutOfSpace
 warning
 1800
-(node_filesystem_avail_bytes{fstype!="",job="node-exporter",mountpoint!=""} / node_filesystem_size_bytes{fstype!="",job="node-exporter",mountpoint!=""} * 100 < 5 and node_filesystem_readonly{fstype!="",job="node-exporter",mountpoint!=""} == 0)
+(node_filesystem_avail_bytes{fstype!="",job="node-exporter",mountpoint!~"/var/lib/ibmc-s3fs.*"} / node_filesystem_size_bytes{fstype!="",job="node-exporter",mountpoint!~"/var/lib/ibmc-s3fs.*"} * 100 < 5 and node_filesystem_readonly{fstype!="",job="node-exporter",mountpoint!~"/var/lib/ibmc-s3fs.*"} == 0)
 Filesystem has less than 5% space left.
 Filesystem on {{ $labels.device }} at {{ $labels.instance }} has only {{ printf "%.2f" $value }}% available space left.
 ----
 NodeFilesystemFilesFillingUp
 critical
 3600
-(node_filesystem_files_free{fstype!="",job="node-exporter",mountpoint!=""} / node_filesystem_files{fstype!="",job="node-exporter",mountpoint!=""} * 100 < 20 and predict_linear(node_filesystem_files_free{fstype!="",job="node-exporter",mountpoint!=""}[6h], 4 * 60 * 60) < 0 and node_filesystem_readonly{fstype!="",job="node-exporter",mountpoint!=""} == 0)
+(node_filesystem_files_free{fstype!="",job="node-exporter",mountpoint!~"/var/lib/ibmc-s3fs.*"} / node_filesystem_files{fstype!="",job="node-exporter",mountpoint!~"/var/lib/ibmc-s3fs.*"} * 100 < 20 and predict_linear(node_filesystem_files_free{fstype!="",job="node-exporter",mountpoint!~"/var/lib/ibmc-s3fs.*"}[6h], 4 * 60 * 60) < 0 and node_filesystem_readonly{fstype!="",job="node-exporter",mountpoint!~"/var/lib/ibmc-s3fs.*"} == 0)
 Filesystem is predicted to run out of inodes within the next 4 hours.
 Filesystem on {{ $labels.device }} at {{ $labels.instance }} has only {{ printf "%.2f" $value }}% available inodes left and is filling up fast.
 ----
 NodeFilesystemFilesFillingUp
 warning
 3600
-(node_filesystem_files_free{fstype!="",job="node-exporter",mountpoint!=""} / node_filesystem_files{fstype!="",job="node-exporter",mountpoint!=""} * 100 < 40 and predict_linear(node_filesystem_files_free{fstype!="",job="node-exporter",mountpoint!=""}[6h], 24 * 60 * 60) < 0 and node_filesystem_readonly{fstype!="",job="node-exporter",mountpoint!=""} == 0)
+(node_filesystem_files_free{fstype!="",job="node-exporter",mountpoint!~"/var/lib/ibmc-s3fs.*"} / node_filesystem_files{fstype!="",job="node-exporter",mountpoint!~"/var/lib/ibmc-s3fs.*"} * 100 < 40 and predict_linear(node_filesystem_files_free{fstype!="",job="node-exporter",mountpoint!~"/var/lib/ibmc-s3fs.*"}[6h], 24 * 60 * 60) < 0 and node_filesystem_readonly{fstype!="",job="node-exporter",mountpoint!~"/var/lib/ibmc-s3fs.*"} == 0)
 Filesystem is predicted to run out of inodes within the next 24 hours.
 Filesystem on {{ $labels.device }} at {{ $labels.instance }} has only {{ printf "%.2f" $value }}% available inodes left and is filling up.
 ----
 NodeFilesystemSpaceFillingUp
 critical
 3600
-(node_filesystem_avail_bytes{fstype!="",job="node-exporter",mountpoint!=""} / node_filesystem_size_bytes{fstype!="",job="node-exporter",mountpoint!=""} * 100 < 10 and predict_linear(node_filesystem_avail_bytes{fstype!="",job="node-exporter",mountpoint!=""}[6h], 4 * 60 * 60) < 0 and node_filesystem_readonly{fstype!="",job="node-exporter",mountpoint!=""} == 0)
+(node_filesystem_avail_bytes{fstype!="",job="node-exporter",mountpoint!~"/var/lib/ibmc-s3fs.*"} / node_filesystem_size_bytes{fstype!="",job="node-exporter",mountpoint!~"/var/lib/ibmc-s3fs.*"} * 100 < 10 and predict_linear(node_filesystem_avail_bytes{fstype!="",job="node-exporter",mountpoint!~"/var/lib/ibmc-s3fs.*"}[6h], 4 * 60 * 60) < 0 and node_filesystem_readonly{fstype!="",job="node-exporter",mountpoint!~"/var/lib/ibmc-s3fs.*"} == 0)
 Filesystem is predicted to run out of space within the next 4 hours.
 Filesystem on {{ $labels.device }} at {{ $labels.instance }} has only {{ printf "%.2f" $value }}% available space left and is filling up fast.
 ----
 NodeFilesystemSpaceFillingUp
 warning
 3600
-(node_filesystem_avail_bytes{fstype!="",job="node-exporter",mountpoint!=""} / node_filesystem_size_bytes{fstype!="",job="node-exporter",mountpoint!=""} * 100 < 15 and predict_linear(node_filesystem_avail_bytes{fstype!="",job="node-exporter",mountpoint!=""}[6h], 24 * 60 * 60) < 0 and node_filesystem_readonly{fstype!="",job="node-exporter",mountpoint!=""} == 0)
+(node_filesystem_avail_bytes{fstype!="",job="node-exporter",mountpoint!~"/var/lib/ibmc-s3fs.*"} / node_filesystem_size_bytes{fstype!="",job="node-exporter",mountpoint!~"/var/lib/ibmc-s3fs.*"} * 100 < 15 and predict_linear(node_filesystem_avail_bytes{fstype!="",job="node-exporter",mountpoint!~"/var/lib/ibmc-s3fs.*"}[6h], 24 * 60 * 60) < 0 and node_filesystem_readonly{fstype!="",job="node-exporter",mountpoint!~"/var/lib/ibmc-s3fs.*"} == 0)
 Filesystem is predicted to run out of space within the next 24 hours.
 Filesystem on {{ $labels.device }} at {{ $labels.instance }} has only {{ printf "%.2f" $value }}% available space left and is filling up.
 ----
